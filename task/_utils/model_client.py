@@ -37,6 +37,7 @@ class DialModelClient:
             }
 
         print_request(endpoint=self._endpoint, request_data=request_data, headers=headers)
+    
 
         response = requests.post(url=self._endpoint, headers=headers, json=request_data)
 

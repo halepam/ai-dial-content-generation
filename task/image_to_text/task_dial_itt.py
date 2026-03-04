@@ -11,23 +11,49 @@ from task._models.role import Role
 
 
 async def _put_image() -> Attachment:
-    file_name = 'dialx-banner.png'
+    file_name = "dialx-banner.png"
     image_path = Path(__file__).parent.parent.parent / file_name
-    mime_type_png = 'image/png'
+    mime_type_png = "image/png"
     # TODO:
     #  1. Create DialBucketClient
-    #  2. Open image file
-    #  3. Use BytesIO to load bytes of image
-    #  4. Upload file with client
-    #  5. Return Attachment object with title (file name), url and type (mime type)
-    raise NotImplementedError
+    async with DialBucketClient(API_KEY, DIAL_URL) as client:
+        #  2. Open image file
+        with open(image_path, mode="rb") as reader:
+            file_bytes = reader.read()
+        #  3. Use BytesIO to load bytes of image
+        #  4. Upload file with client
+        upload_result = await client.put_file(
+            file_name, mime_type=mime_type_png, content=file_bytes
+        )
+        #  5. Return Attachment object with title (file name), url and type (mime type)
+    return Attachment(
+        title=upload_result.get("name"),
+        url=upload_result.get("url"),
+        type=upload_result.get("contentType"),
+    )
 
 
-def start() -> None:
+async def start() -> None:
     # TODO:
     #  1. Create DialModelClient
+    # claude-3-5-haiku@20241022
+    # gemini-2.0-flash-lite
+    client = DialModelClient(
+        DIAL_CHAT_COMPLETIONS_ENDPOINT, "claude-3-5-haiku@20241022", API_KEY
+    )
     #  2. Upload image (use `_put_image` method )
+    attachment = await _put_image()
     #  3. Print attachment to see result
+    print(f"Attachment: {attachment}")
+    message = client.get_completion(
+        messages=[
+            Message(
+                role=Role.USER,
+                content="What do you see on this picture?",
+                custom_content=CustomContent(attachments=[attachment]),
+            )
+        ]
+    )
     #  4. Call chat completion via client with list containing one Message:
     #    - role: Role.USER
     #    - content: "What do you see on this picture?"
@@ -38,7 +64,6 @@ def start() -> None:
     #        adapts this attachment to Message content in appropriate format for Model.
     #  TRY THIS APPROACH WITH DIFFERENT MODELS!
     #  Optional: Try upload 2+ pictures for analysis
-    raise NotImplementedError
 
 
-start()
+asyncio.run(start())
